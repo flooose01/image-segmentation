@@ -1,145 +1,94 @@
-# Image Segmentation using Graph Cuts
 
-Hi! I'm your first Markdown file in **StackEdit**. If you want to learn about StackEdit, you can read me. If you want to play with Markdown, you can edit me. Once you have finished with me, you can create new files by opening the **file explorer** on the left corner of the navigation bar.
 
-This project segments
+# 2-D Image Segmentation using Graph Cuts
 
+This project implements the Ford-Fulkerson max-flow min-cut algorithm and applied it for the segmentation of a 2-D colored image. These segmentation is based on the maximum a posteriori estimation which can be reformulated as a network flow problem.
 
-# Files
+# Introduction
 
-StackEdit stores your files in your browser, which means all your files are automatically saved locally and are accessible **offline!**
+In this project, we applied the Ford-Fulkerson maximum-flow minimum-cut algorithm to get the image segmentation of a 2-D colored image. The purpose of the segmentation is to track which are object and which are background in the image.
 
-## Create files and folders
+I used [this paper](https://www.csd.uwo.ca/~yboykov/Papers/ijcv06.pdf) by Boykov and Funka-Lea as the main reference for this implementation.
 
-The file explorer is accessible using the button in left corner of the navigation bar. You can create a new file by clicking the **New file** button in the file explorer. You can also create folders by clicking the **New folder** button.
+# Implementation
 
-## Switch to another file
+## Flow Network
 
-All your files and folders are presented as a tree in the file explorer. You can switch from one to another by clicking a file in the tree.
+A flow network (also known as a transportation network) is a directed graph where each edge has a capacity and each edge receives a flow.    
+A flow network typically has 2 special nodes, a source and a sink. A source is a node where the flow starts, i.e. flows out of the source,    
+and a sink is a node that ends the flow, the flow goes in the sink. It is helpful to think of the edges as a pipe and flow as water. A flow network can be denoted as $G = (V, E, s, t)$, where $V$ is the set of vertices, $E$ is the set of edges, the source $s$, and the sink $t$. $f(u, v)$ denotes the flow from vertice $u$ to $v$ and $c(u, v)$ denote the capacity of edge $(u, v)$
 
-## Rename a file
+Every flow network satisfies these 2 conditions:
 
-You can rename the current file by clicking the file name in the navigation bar or by clicking the **Rename** button in the file explorer.
+1. Capacity constraint  
+   The flow on each edge must be less than the capacity of the edge, i.e. $f(u, v) \leq c(u, v)$ for each edge $(u, v)$
 
-## Delete a file
+2. Flow conservation constraint  
+   The total net flow entering a node $v$ is zero for all nodes in the network except the source $s$ and the sink $t$. Mathematically, it can be expressed as  
+   $$\sum\limits_{(u, v) \in E} f(u, v) = \sum\limits_{(v, w) \in E} f(v, w)$$  
+   for each vertex $v \in V \setminus \{s, t\}$
 
-You can delete the current file by clicking the **Remove** button in the file explorer. The file will be moved into the **Trash** folder and automatically deleted after 7 days of inactivity.
+## Min-cut and Image segmentation
 
-## Export a file
+An s-t cut is a partition $(A, B)$ of $V$ with $s \in A$ and $t \in B$. The capacity of a cut $(A, B)$ is defined as the sum of the capacity of edges that it severs
 
-You can export the current file by clicking **Export to disk** in the menu. You can choose to export the file as plain Markdown, as HTML using a Handlebars template or as a PDF.
+$$cap(A, B) = \sum\limits_{e \text{ out of } A} c(e)$$
 
+The minimum cut correspond to a cut such that has the minimum capacity among all possible cuts.
 
-# Synchronization
+Let $A = \{A_0, A_1, ..., A_n\}$ be the set of pixels in the image. Consider the following energy function
+$$E(A) = \lambda \cdot R(A) + B(A)$$
+defined in [the paper](https://www.csd.uwo.ca/~yboykov/Papers/ijcv06.pdf). The set of pixels that has the minimum energy function is the best possible segmentation given the constraints. By constructing a specific flow network, we can calculate a min-cut that is exactly the minimum energy function.
 
-Synchronization is one of the biggest features of StackEdit. It enables you to synchronize any file in your workspace with other files stored in your **Google Drive**, your **Dropbox** and your **GitHub** accounts. This allows you to keep writing on other devices, collaborate with people you share the file with, integrate easily into your workflow... The synchronization mechanism takes place every minute in the background, downloading, merging, and uploading file modifications.
+## Image -> Flow Network
 
-There are two types of synchronization and they can complement each other:
+The authors of the paper describe in great detail how to construct the flow network based on an image. The implementation follows the paper closely.
 
-- The workspace synchronization will sync all your files, folders and settings automatically. This will allow you to fetch your workspace on any other device.
-  > To start syncing your workspace, just sign in with Google in the menu.
+First, we convert the pixels into a vertex called voxels. Let $P$ be the set of voxels. We also create 2 extra invisible vertex, the source $s$ and sink $t$. These voxels would have edges to other voxels, $s$ and $t$. The edges from a voxel to 4 neighboring voxels are called n-links, while the edges $(s, v)$ and $(v, t)$ are called t-links. Let $N$ be the set of links $(p, q)$ that are neighbors.
 
-- The file synchronization will keep one file of the workspace synced with one or multiple files in **Google Drive**, **Dropbox** or **GitHub**.
-  > Before starting to sync files, you must link an account in the **Synchronize** sub-menu.
+The capacity of the n-link $(p, q)$ is defined as
+$$B_{p, q} = 10 \cdot exp\left(\frac{-(I_p - I_q)^2}{2\sigma^2}\right)$$
 
-## Open a file
+The capacity of the t-link $(s, p)$ is defined as
+- $K$ if $p$ is in the object seed.
+- 0 if $p$ is in background seed
+- $R_p(``bkg")$
 
-You can open a file from **Google Drive**, **Dropbox** or **GitHub** by opening the **Synchronize** sub-menu and clicking **Open from**. Once opened in the workspace, any modification in the file will be automatically synced.
+The capacity of the t-link $(p, t)$ is defined as
+- $K$ if $p$ is in background seed
+- 0 if $p$ is in object seed
+- $R_p(``obj")$
 
-## Save a file
+where
+- $K = 1 + \max\limits_{p \in P}\sum\limits_{(p, q) \in N} B_{p, q}$
+- $R_p(``bkg") = -\ln(\Pr(I_p |``bkg"))$
+- $R_p(``obj") = -\ln(\Pr(I_p |``obj"))$
 
-You can save any file of the workspace to **Google Drive**, **Dropbox** or **GitHub** by opening the **Synchronize** sub-menu and clicking **Save on**. Even if a file in the workspace is already synced, you can save it to another location. StackEdit can sync one file with multiple locations and accounts.
+$R_p$ is defined using the seeds given by the user. We construct an intensity histogram of the pixels in the seeds, keeping track of how many times the intensity appears in the seed. Then, we can calculate the probability of each intensity by $\frac{   \text{count}(I_p)}{\text{seedSize}      }$. We further improve this by increasing the count of the intensity and the intensities surrounding it.
 
-## Synchronize a file
 
-Once your file is linked to a synchronized location, StackEdit will periodically synchronize it by downloading/uploading any modification. A merge will be performed if necessary and conflicts will be resolved.
+## Algorithm
 
-If you just have modified your file and you want to force syncing, click the **Synchronize now** button in the navigation bar.
+The implementation of the Ford Fulkerson algorithm follows the [page](https://algs4.cs.princeton.edu/64maxflow/)  closely. The runtime of Ford Fulkerson might not be the most suitable for this problem, therefore it is relatively slow for larger images.
 
-> **Note:** The **Synchronize now** button is disabled if you have no file to synchronize.
+# Usage
 
-## Manage file synchronization
+The program asks for the user's image file name, displays it, and asks the user to color which are objects and which are background. Based on the user's drawn area, we use that to create a seed for object pixels and background pixels. We will use the seeds to indicate which pixels are more likely to be an object and background. Then, the program will save the seeded image and the new image that has been segmented where area indicated as the object is colored with red.
 
-Since one file can be synced with multiple locations, you can list and manage synchronized locations by clicking **File synchronization** in the **Synchronize** sub-menu. This allows you to list and remove synchronized locations that are linked to your file.
+To run the program, do the following  
+``` $ ./gradlew build $ ./gradlew run ```
+# Results
 
+Smaller images with dimensions under 50x50 pixels get processed quickly in less than 5 seconds. While images with dimensions around 200x200 pixels gets processed in around 3 minutes. Bigger images with dimensions above 400x400 takes cannot get processed within a reasonable amount of time. The majority of the processing time is contributed by the Ford-Fulkerson algorithm. Future improvements would consider using faster and more suitable algorithms for calculating min-cut with big capacities like the push-relabel algorithm. Improvements can also be made for calculating the intensity histogram to be more accurate with the regional term.
 
-# Publication
+![donut seeded](images/donut-seeded-enlarged.jpg)  
+![donut segmented](images/donut-segmented-enlarged.jpg)\  
+*donut*
 
-Publishing in StackEdit makes it simple for you to publish online your files. Once you're happy with a file, you can publish it to different hosting platforms like **Blogger**, **Dropbox**, **Gist**, **GitHub**, **Google Drive**, **WordPress** and **Zendesk**. With [Handlebars templates](http://handlebarsjs.com/), you have full control over what you export.
+![big dots seeded](images/big-dots-seeded.png)  
+![big dots segmented](images/big-dots-segmented.png)\  
+*big dots*
 
-> Before starting to publish, you must link an account in the **Publish** sub-menu.
-
-## Publish a File
-
-You can publish your file by opening the **Publish** sub-menu and by clicking **Publish to**. For some locations, you can choose between the following formats:
-
-- Markdown: publish the Markdown text on a website that can interpret it (**GitHub** for instance),
-- HTML: publish the file converted to HTML via a Handlebars template (on a blog for example).
-
-## Update a publication
-
-After publishing, StackEdit keeps your file linked to that publication which makes it easy for you to re-publish it. Once you have modified your file and you want to update your publication, click on the **Publish now** button in the navigation bar.
-
-> **Note:** The **Publish now** button is disabled if your file has not been published yet.
-
-## Manage file publication
-
-Since one file can be published to multiple locations, you can list and manage publish locations by clicking **File publication** in the **Publish** sub-menu. This allows you to list and remove publication locations that are linked to your file.
-
-
-# Markdown extensions
-
-StackEdit extends the standard Markdown syntax by adding extra **Markdown extensions**, providing you with some nice features.
-
-> **ProTip:** You can disable any **Markdown extension** in the **File properties** dialog.
-
-
-## SmartyPants
-
-SmartyPants converts ASCII punctuation characters into "smart" typographic punctuation HTML entities. For example:
-
-|                |ASCII                          |HTML                         |
-|----------------|-------------------------------|-----------------------------|
-|Single backticks|`'Isn't this fun?'`            |'Isn't this fun?'            |
-|Quotes          |`"Isn't this fun?"`            |"Isn't this fun?"            |
-|Dashes          |`-- is en-dash, --- is em-dash`|-- is en-dash, --- is em-dash|
-
-
-## KaTeX
-
-You can render LaTeX mathematical expressions using [KaTeX](https://khan.github.io/KaTeX/):
-
-The *Gamma function* satisfying $\Gamma(n) = (n-1)!\quad\forall n\in\mathbb N$ is via the Euler integral
-
-$$
-\Gamma(z) = \int_0^\infty t^{z-1}e^{-t}dt\,.
-$$
-
-> You can find more information about **LaTeX** mathematical expressions [here](http://meta.math.stackexchange.com/questions/5020/mathjax-basic-tutorial-and-quick-reference).
-
-
-## UML diagrams
-
-You can render UML diagrams using [Mermaid](https://mermaidjs.github.io/). For example, this will produce a sequence diagram:
-
-```mermaid
-sequenceDiagram
-Alice ->> Bob: Hello Bob, how are you?
-Bob-->>John: How about you John?
-Bob--x Alice: I am good thanks!
-Bob-x John: I am good thanks!
-Note right of John: Bob thinks a long<br/>long time, so long<br/>that the text does<br/>not fit on a row.
-
-Bob-->Alice: Checking with John...
-Alice->John: Yes... John, how are you?
-```
-
-And this will produce a flow chart:
-
-```mermaid
-graph LR
-A[Square Rect] -- Link text --> B((Circle))
-A --> C(Round Rect)
-B --> D{Rhombus}
-C --> D
-```
+![person seeded](images/person-seeded.jpg)  
+![person segmented](images/person-segmented.jpg)\  
+*person*

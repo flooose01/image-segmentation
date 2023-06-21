@@ -187,14 +187,17 @@ public class App {
         public void finishDrawing() {
             graphics.dispose();
             frame.dispose();
+            StringBuilder sbSeed = new StringBuilder(filename);
+            sbSeed.insert(filename.lastIndexOf('.'), "-seeded");
+            save(image, sbSeed.toString());
             ImageSegmentation is = new ImageSegmentation(getPixels(), seedObj, seedBkg);
             Set<Index> set = is.getSegmentation();
             colorImage(set);
 
-            StringBuilder sb = new StringBuilder(filename);
-            sb.insert(filename.lastIndexOf('.'), "-segmented");
+            StringBuilder sbSegment = new StringBuilder(filename);
+            sbSegment.insert(filename.lastIndexOf('.'), "-segmented");
 
-            save(sb.toString());
+            save(origImage, sbSegment.toString());
         }
 
         // Continue drawing (x, y) / (j, i)
@@ -247,16 +250,14 @@ public class App {
             g2d.dispose();
         }
 
-        // Save current image to a file with given name
-        private void save(String name) {
+        private void save(BufferedImage img, String name) {
             if (name == null) throw new IllegalArgumentException("argument to save() is null");
+
             File file = new File(name);
-            filename = file.getName();
-            if (frame != null) frame.setTitle(filename);
-            String suffix = filename.substring(filename.lastIndexOf('.') + 1);
+            String suffix = name.substring(name.lastIndexOf('.') + 1);
             if ("jpg".equalsIgnoreCase(suffix) || "png".equalsIgnoreCase(suffix)) {
                 try {
-                    ImageIO.write(origImage, suffix, file);
+                    ImageIO.write(img, suffix, file);
                 }
                 catch (IOException e) {
                     e.printStackTrace();

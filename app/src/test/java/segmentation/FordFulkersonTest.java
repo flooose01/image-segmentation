@@ -8,7 +8,7 @@ import segmentation.datastructure.node.Vertex;
 
 import java.util.List;
 import java.util.Set;
-
+import org.apache.commons.math3.distribution.NormalDistribution;
 import static org.junit.Assert.assertEquals;
 
 public class FordFulkersonTest {
@@ -26,6 +26,8 @@ public class FordFulkersonTest {
 
     @Test
     public void test_SimpleGraph() {
+        NormalDistribution nd = new NormalDistribution(0, 10);
+        System.out.println(nd.density(20) * 1000);
         addEdgesSimple();
         FordFulkerson<Vertex> ff = new FordFulkerson<>(G, s, t);
         Set<Vertex> set = Set.of(s);

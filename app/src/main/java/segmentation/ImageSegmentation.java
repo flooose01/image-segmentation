@@ -5,6 +5,7 @@ import segmentation.datastructure.container.Index;
 import segmentation.datastructure.link.FlowEdge;
 import segmentation.datastructure.node.Voxel;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
 import java.awt.Color;
 import java.util.HashSet;
 import java.util.Set;
@@ -26,7 +27,7 @@ import java.util.Set;
 public class ImageSegmentation {
     private static final int SIGMA = 60;
     private static final int LAMBDA = 1;
-    private static final int DIST = 10;
+    private static final int DIST = 50;
 
     private FlowNetwork<Voxel> flowNetwork;     // flow network representing the image
     private int K;                              // K
@@ -94,35 +95,37 @@ public class ImageSegmentation {
         double maxB = 0;
         for (int i = 0; i < voxels.length; i++) {
             for (int j = 0; j < voxels[0].length; j++) {
+                double sumB = 0;
                 // Every neighbor, get B_pq
 
                 // There's always left pixel
                 if (j > 0) {
                     double b = B(voxels[i][j - 1], voxels[i][j]);
                     flowNetwork.addEdge(new FlowEdge<>(voxels[i][j], voxels[i][j - 1], (int) b));
-                    maxB = Math.max(maxB, b);
+                    sumB += b;
                 }
 
                 // There's always right pixel
                 if (j < voxels[0].length - 1) {
                     double b = B(voxels[i][j + 1], voxels[i][j]);
                     flowNetwork.addEdge(new FlowEdge<>(voxels[i][j], voxels[i][j + 1], (int) b));
-                    maxB = Math.max(maxB, b);
+                    sumB += b;
                 }
 
                 // There's always top pixel
                 if (i > 0) {
                     double b = B(voxels[i - 1][j], voxels[i][j]);
                     flowNetwork.addEdge(new FlowEdge<>(voxels[i][j], voxels[i - 1][j], (int) b));
-                    maxB = Math.max(maxB, b);
+                    sumB += b;
                 }
 
                 // There's always bottom pixel
                 if (i < voxels.length - 1) {
                     double b = B(voxels[i + 1][j], voxels[i][j]);
                     flowNetwork.addEdge(new FlowEdge<>(voxels[i][j], voxels[i + 1][j], (int) b));
-                    maxB = Math.max(maxB, b);
+                    sumB += b;
                 }
+                maxB = Math.max(maxB, sumB);
             }
         }
 
@@ -149,6 +152,7 @@ public class ImageSegmentation {
                     FlowEdge<Voxel> e2 = new FlowEdge<>(voxel, t, (int) (LAMBDA * histogram.bkgR(voxel)));
                     flowNetwork.addEdge(e1);
                     flowNetwork.addEdge(e2);
+
                 }
             }
         }
@@ -167,6 +171,7 @@ public class ImageSegmentation {
 
     // This class represents an intensity histogram based on the seeds given.
     private static class IntensityHistogram {
+        private static final int NUM_INTENSITY = 256;
         private final int[] objHistogram;   // stores the count of each intensity 0 - 255 in seedObj
         private final int totalObj;         // sum of count in objHistogram
 
@@ -180,16 +185,13 @@ public class ImageSegmentation {
          * @param seedBkg background seed
          */
         public IntensityHistogram(Voxel[][] voxels, Set<Index> seedObj, Set<Index> seedBkg) {
-            objHistogram = new int[256];
-            bkgHistogram = new int[256];
+            objHistogram = new int[NUM_INTENSITY];
+            bkgHistogram = new int[NUM_INTENSITY];
 
-            count(objHistogram, seedObj, voxels);
-            count(bkgHistogram, seedBkg, voxels);
+            NormalDistribution nd = new NormalDistribution(0, 10);
 
-            for (Index ij : seedBkg) {
-                int intensity = voxels[ij.i][ij.j].getIntensity();
-                bkgHistogram[intensity]++;
-            }
+            count(objHistogram, seedObj, voxels, nd);
+            count(bkgHistogram, seedBkg, voxels, nd);
 
             totalObj = sum(objHistogram);
             totalBkg = sum(bkgHistogram);
@@ -206,22 +208,14 @@ public class ImageSegmentation {
         }
 
         // Increase the count of each index's intensity in seed
-        private void count(int[] arr, Set<Index> seed, Voxel[][] voxels) {
+        private void count(int[] arr, Set<Index> seed, Voxel[][] voxels, NormalDistribution nd) {
 
             for (Index ij : seed) {
                 int intensity = voxels[ij.i][ij.j].getIntensity();
-                arr[intensity] += 10;
 
-                // Add count to surrounding intensity to be less strict
-                addTo(arr, intensity - 1, 9);
-                addTo(arr, intensity - 2, 7);
-                addTo(arr, intensity - 3, 4);
-                addTo(arr, intensity - 4, 1);
-
-                addTo(arr, intensity + 1, 9);
-                addTo(arr, intensity + 2, 7);
-                addTo(arr, intensity + 3, 4);
-                addTo(arr, intensity + 4, 1);
+                for (int i = 0; i < NUM_INTENSITY; i++) {
+                    arr[i] += nd.density(i - intensity) * 1000;
+                }
             }
         }
 
@@ -232,13 +226,6 @@ public class ImageSegmentation {
                 sum += num;
             }
             return sum;
-        }
-
-        // arr[i] += num with bounds checking
-        private void addTo(int[] arr, int i, int num) {
-            if (0 <= i && i <= arr.length - 1) {
-                arr[i] += num;
-            }
         }
     }
 }
