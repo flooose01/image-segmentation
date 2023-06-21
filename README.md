@@ -82,13 +82,13 @@ To run the program, do the following
 Smaller images with dimensions under 50x50 pixels get processed quickly in less than 5 seconds. While images with dimensions around 200x200 pixels gets processed in around 3 minutes. Bigger images with dimensions above 400x400 takes cannot get processed within a reasonable amount of time. The majority of the processing time is contributed by the Ford-Fulkerson algorithm. Future improvements would consider using faster and more suitable algorithms for calculating min-cut with big capacities like the push-relabel algorithm. Improvements can also be made for calculating the intensity histogram to be more accurate with the regional term.
 
 ![donut seeded](images/donut-seeded-enlarged.jpg)  
-![donut segmented](images/donut-segmented-enlarged.jpg)\  
+![donut segmented](images/donut-segmented-enlarged.jpg)
 *donut*
 
 ![big dots seeded](images/big-dots-seeded.png)  
-![big dots segmented](images/big-dots-segmented.png)\  
+![big dots segmented](images/big-dots-segmented.png) 
 *big dots*
 
 ![person seeded](images/person-seeded.jpg)  
-![person segmented](images/person-segmented.jpg)\  
+![person segmented](images/person-segmented.jpg) 
 *person*
