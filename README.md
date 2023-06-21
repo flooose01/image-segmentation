@@ -52,17 +52,17 @@ $$B_{p, q} = 10 \cdot exp\left(\frac{-(I_p - I_q)^2}{2\sigma^2}\right)$$
 The capacity of the t-link $(s, p)$ is defined as
 - $K$ if $p$ is in the object seed.
 - 0 if $p$ is in background seed
-- $R_p("bkg")$
+- $R_p(bkg)$
 
 The capacity of the t-link $(p, t)$ is defined as
 - $K$ if $p$ is in background seed
 - 0 if $p$ is in object seed
-- $R_p("obj")$
+- $R_p(obj)$
 
 where
 - $K = 1 + \max\limits_{p \in P}\sum\limits_{(p, q) \in N} B_{p, q}$
-- $R_p("bkg") = -\ln(\Pr(I_p |"bkg"))$
-- $R_p("obj") = -\ln(\Pr(I_p |"obj"))$
+- $R_p"bkg) = -\ln(\Pr(I_p |bkg))$
+- $R_p(obj) = -\ln(\Pr(I_p |obj))$
 
 $R_p$ is defined using the seeds given by the user. We construct an intensity histogram of the pixels in the seeds, keeping track of how many times the intensity appears in the seed. Then, we can calculate the probability of each intensity by $\frac{   \text{count}(I_p)}{\text{seedSize}      }$. We further improve this by increasing the count of the intensity and the intensities surrounding it.
 
