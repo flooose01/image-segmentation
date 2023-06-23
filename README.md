@@ -61,7 +61,7 @@ The capacity of the t-link $(p, t)$ is defined as
 
 where
 - $K = 1 + \max\limits_{p \in P}\sum\limits_{(p, q) \in N} B_{p, q}$
-- $R_p"bkg) = -\ln(\Pr(I_p |bkg))$
+- $R_p(bkg) = -\ln(\Pr(I_p |bkg))$
 - $R_p(obj) = -\ln(\Pr(I_p |obj))$
 
 $R_p$ is defined using the seeds given by the user. We construct an intensity histogram of the pixels in the seeds, keeping track of how many times the intensity appears in the seed. Then, we can calculate the probability of each intensity by $\frac{   \text{count}(I_p)}{\text{seedSize}      }$. We further improve this by increasing the count of the intensity and the intensities surrounding it.
@@ -76,7 +76,8 @@ The implementation of the Ford Fulkerson algorithm follows the [page](https://al
 The program asks for the user's image file name, displays it, and asks the user to color which are objects and which are background. Based on the user's drawn area, we use that to create a seed for object pixels and background pixels. We will use the seeds to indicate which pixels are more likely to be an object and background. Then, the program will save the seeded image and the new image that has been segmented where area indicated as the object is colored with red.
 
 To run the program, do the following  
-``` $ ./gradlew build $ ./gradlew run ```
+``` $ ./gradlew build ```
+``` $ ./gradlew run ```
 # Results
 
 Smaller images with dimensions under 50x50 pixels get processed quickly in less than 5 seconds. While images with dimensions around 200x200 pixels gets processed in around 3 minutes. Bigger images with dimensions above 400x400 takes cannot get processed within a reasonable amount of time. The majority of the processing time is contributed by the Ford-Fulkerson algorithm. Future improvements would consider using faster and more suitable algorithms for calculating min-cut with big capacities like the push-relabel algorithm. Improvements can also be made for calculating the intensity histogram to be more accurate with the regional term.
